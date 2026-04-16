@@ -154,6 +154,7 @@ async function validateSession() {
 }
 
 function resetChatState() {
+    clearTypingState();
     state.page = 0;
     state.hasMore = true;
     state.isLoadingHistory = false;
@@ -168,6 +169,16 @@ function resetChatState() {
     fileInput.value = '';
     messageInput.value = '';
     closeMediaLightbox();
+}
+
+function clearTypingState() {
+    window.clearTimeout(typingTimeout);
+
+    if (socket?.connected && isTyping) {
+        socket.emit('typing', { isTyping: false });
+    }
+
+    isTyping = false;
 }
 
 async function initializeChat() {
@@ -662,9 +673,7 @@ function setupTypingHandler() {
     });
 
     messageInput.addEventListener('blur', () => {
-        if (!socket?.connected || !isTyping) return;
-        isTyping = false;
-        socket.emit('typing', { isTyping: false });
+        clearTypingState();
     });
 }
 
@@ -895,6 +904,7 @@ async function submitMessage() {
     }
 
     const clientMessageId = crypto.randomUUID();
+    clearTypingState();
     const optimisticMessage = {
         sender: currentUser,
         recipient: partnerName,
